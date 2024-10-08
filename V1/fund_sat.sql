@@ -1,0 +1,393 @@
+create or replace view IM_VAULT.BDV.FUND_SAT(
+	FUND_HKEY,
+	FUND_BKEY,
+	FUND_ID,
+	FUND_NAME,
+	FUND_NAME_SHORT,
+	FUND_ISSUE_GROUP_SHORT,
+	GROUP_SUBTYPE,
+	STATESTREET_ACCOUNT_ID,
+	FUND_TIN,
+	FUND_GIIN,
+	ACCOUNT_STRUCTURE,
+	MANAGER_STRUCTURE,
+	FUND_TYPE,
+	FUND_STRUCTURE,
+	DISTRIBUTION_TYPE,
+	CIS_TYPE,
+	REGULATORY_STATUS,
+	AUTHORISED_FUND_TYPE,
+	UCITS_VERSION,
+	PURCHASE_SETTLEMENT_DAYS,
+	REPURCHASE_SETTLEMENT_DAYS,
+	DEALING_FREQUENCY,
+	PRICING_FREQUENCY,
+	VALUATION_TIME,
+	FUND_DOMICILE,
+	FUND_OBJECTIVE,
+	BENEFICIAL_OWNER,
+	ISSUING_GROUP,
+	ISSUING_GROUP_ADDRESS,
+	ISSUING_GROUP_POSTCODE,
+	ISSUING_GROUP_PHONE_NUMBER,
+	ISSUING_GROUP_WEBSITE,
+	ISSUING_GROUP_LEI,
+	TRUSTEE,
+	TRUSTEE_LEI,
+	CUSTODIAN,
+	CUSTODIAN_LEI,
+	CUSTODIAN_DOMICILE,
+	REGISTERED_HOLDER,
+	REGISTERED_HOLDER_ADDRESS,
+	ADMINISTRATOR,
+	ADMINISTRATOR_LEI,
+	ADMINISTRATOR_DOMICILE,
+	AUDITOR,
+	AUDITOR_LEI,
+	AUDITOR_DOMICILE,
+	LOAD_DATETIME
+) COMMENT='No Comment Provided'
+ as
+(
+WITH FUND_SAT AS(
+SELECT   TO_VARCHAR(FUND_HKEY) AS FUND_HKEY
+        ,TO_VARCHAR(FUND_BKEY) AS FUND_BKEY
+        ,TO_VARCHAR(FUND_KEY) AS FUND_ID
+        ,TO_VARCHAR(FUND_NAME) AS FUND_NAME
+        ,TO_VARCHAR(FUND_NAME_SHORT) AS FUND_NAME_SHORT
+        ,TO_VARCHAR(FUND_ISSUE_GROUP_SHORT) AS FUND_ISSUE_GROUP_SHORT
+        ,TO_VARCHAR(GROUP_SUBTYPE) AS GROUP_SUBTYPE 
+        ,TO_VARCHAR(STATESTREET_ACCOUNT_ID) AS STATESTREET_ACCOUNT_ID
+        ,TO_VARCHAR(FUND_TIN) AS FUND_TIN
+        ,TO_VARCHAR(FUND_GIIN) AS FUND_GIIN
+        ,TO_VARCHAR(ACCOUNT_STRUCTURE) AS ACCOUNT_STRUCTURE
+        ,TO_VARCHAR(MANAGER_STRUCTURE) AS MANAGER_STRUCTURE
+        ,TO_VARCHAR(FUND_TYPE) AS FUND_TYPE
+        ,TO_VARCHAR(FUND_STRUCTURE) AS FUND_STRUCTURE
+        ,TO_VARCHAR(DISTRIBUTION_TYPE) AS DISTRIBUTION_TYPE
+        ,TO_VARCHAR(CIS_TYPE) AS CIS_TYPE
+        ,TO_VARCHAR(REGULATORY_STATUS) AS REGULATORY_STATUS
+        ,TO_VARCHAR(AUTHORISED_FUND_TYPE) AS AUTHORISED_FUND_TYPE
+        ,CASE WHEN UCITS_VERSION = '' THEN NULL ELSE TO_NUMERIC(UCITS_VERSION) END AS UCITS_VERSION
+        ,CASE WHEN PURCHASE_SETTLEMENT_DAYS = '' THEN NULL ELSE TO_NUMERIC(PURCHASE_SETTLEMENT_DAYS) END AS PURCHASE_SETTLEMENT_DAYS
+        ,CASE WHEN REPURCHASE_SETTLEMENT_DAYS ='' THEN NULL ELSE TO_NUMERIC(REPURCHASE_SETTLEMENT_DAYS) END AS REPURCHASE_SETTLEMENT_DAYS
+        ,TO_VARCHAR(DEALING_FREQUENCY) AS DEALING_FREQUENCY
+        ,TO_VARCHAR(PRICING_FREQUENCY) AS PRICING_FREQUENCY
+        ,CASE WHEN VALUATION_TIME = '' THEN NULL ELSE TO_TIME(VALUATION_TIME) END AS VALUATION_TIME
+        ,TO_VARCHAR(FUND_DOMICILE) AS FUND_DOMICILE
+        ,TO_VARCHAR(FUND_OBJECTIVE) AS FUND_OBJECTIVE
+        ,TO_VARCHAR(BENEFICIAL_OWNER) AS BENEFICIAL_OWNER
+        ,TO_VARCHAR(ISSUING_GROUP) AS ISSUING_GROUP
+        ,TO_VARCHAR(ISSUING_GROUP_ADDRESS) AS ISSUING_GROUP_ADDRESS
+        ,TO_VARCHAR(ISSUING_GROUP_POSTCODE) AS ISSUING_GROUP_POSTCODE
+        ,TO_VARCHAR(ISSUING_GROUP_PHONE_NUMBER) AS ISSUING_GROUP_PHONE_NUMBER
+        ,TO_VARCHAR(ISSUING_GROUP_WEBSITE) AS ISSUING_GROUP_WEBSITE
+        ,TO_VARCHAR(ISSUING_GROUP_LEI) AS ISSUING_GROUP_LEI
+        ,TO_VARCHAR(TRUSTEE) AS TRUSTEE
+        ,TO_VARCHAR(TRUSTEE_LEI) AS TRUSTEE_LEI
+        ,TO_VARCHAR(CUSTODIAN) AS CUSTODIAN
+        ,TO_VARCHAR(CUSTODIAN_LEI) AS CUSTODIAN_LEI
+        ,TO_VARCHAR(CUSTODIAN_DOMICILE) AS CUSTODIAN_DOMICILE
+        ,TO_VARCHAR(REGISTERED_HOLDER) AS REGISTERED_HOLDER
+        ,TO_VARCHAR(REGISTERED_HOLDER_ADDRESS) AS REGISTERED_HOLDER_ADDRESS
+        ,TO_VARCHAR(ADMINISTRATOR) AS ADMINISTRATOR
+        ,TO_VARCHAR(ADMINISTRATOR_LEI) AS ADMINISTRATOR_LEI
+        ,TO_VARCHAR(ADMINISTRATOR_DOMICILE) AS ADMINISTRATOR_DOMICILE 
+        ,TO_VARCHAR(AUDITOR) AS AUDITOR
+        ,TO_VARCHAR(AUDITOR_LEI) AS AUDITOR_LEI
+        ,TO_VARCHAR(AUDITOR_DOMICILE) AS AUDITOR_DOMICILE
+        ,LOAD_DATETIME 
+FROM "IM_VAULT"."RDV"."FUND_SAT"
+)
+, OVR_RECORDS AS (
+    SELECT *
+    FROM (
+        SELECT TRIM(OL.H_KEY) AS "H_KEY",
+               TRIM(OL.BUSINESS_DATE) AS "BUSINESS_DATE",
+               TRIM(OL.ATTRIBUTE_NAME) AS "ATTRIBUTE_NAME",
+               OL.ATTRIBUTE_VALUE,
+               TRIM(OL.LOAD_DATETIME) AS "LOAD_DATETIME",
+               ROW_NUMBER() OVER (PARTITION BY OL.H_KEY, OL.BUSINESS_DATE, OL.ATTRIBUTE_NAME
+                                  ORDER BY OL.LOAD_DATETIME DESC) AS "DECLARED_RANK"
+        FROM IM_VAULT_DEV.REFERENCE.OVERRIDE_LOOKUP OL)
+    WHERE "DECLARED_RANK" = '1'
+)
+SELECT  FS.FUND_HKEY
+        , FS.FUND_BKEY
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'FUND_ID'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.FUND_ID
+                  ) AS "FUND_ID"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'FUND_NAME'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.FUND_NAME
+                  ) AS "FUND_NAME"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'FUND_NAME_SHORT'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.FUND_NAME_SHORT
+                  ) AS "FUND_NAME_SHORT"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'FUND_ISSUE_GROUP_SHORT'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.FUND_ISSUE_GROUP_SHORT
+                  ) AS "FUND_ISSUE_GROUP_SHORT"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'GROUP_SUBTYPE'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.GROUP_SUBTYPE
+                  ) AS "GROUP_SUBTYPE"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'STATESTREET_ACCOUNT_ID'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.STATESTREET_ACCOUNT_ID
+                  ) AS "STATESTREET_ACCOUNT_ID"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'FUND_TIN'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.FUND_TIN
+                  ) AS "FUND_TIN"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'FUND_GIIN'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.FUND_GIIN
+                  ) AS "FUND_GIIN"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'ACCOUNT_STRUCTURE'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.ACCOUNT_STRUCTURE
+                  ) AS "ACCOUNT_STRUCTURE"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'MANAGER_STRUCTURE'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.MANAGER_STRUCTURE
+                  ) AS "MANAGER_STRUCTURE"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'FUND_TYPE'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.FUND_TYPE
+                  ) AS "FUND_TYPE"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'FUND_STRUCTURE'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.FUND_STRUCTURE
+                  ) AS "FUND_STRUCTURE"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'DISTRIBUTION_TYPE'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.DISTRIBUTION_TYPE
+                  ) AS "DISTRIBUTION_TYPE"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'CIS_TYPE'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.CIS_TYPE
+                  ) AS "CIS_TYPE"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'REGULATORY_STATUS'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.REGULATORY_STATUS
+                  ) AS "REGULATORY_STATUS"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'AUTHORISED_FUND_TYPE'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.AUTHORISED_FUND_TYPE
+                  ) AS "AUTHORISED_FUND_TYPE"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'UCITS_VERSION'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.UCITS_VERSION
+                  ) AS "UCITS_VERSION"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'PURCHASE_SETTLEMENT_DAYS'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.PURCHASE_SETTLEMENT_DAYS
+                  ) AS "PURCHASE_SETTLEMENT_DAYS"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'REPURCHASE_SETTLEMENT_DAYS'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.REPURCHASE_SETTLEMENT_DAYS
+                  ) AS "REPURCHASE_SETTLEMENT_DAYS"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'DEALING_FREQUENCY'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.DEALING_FREQUENCY
+                  ) AS "DEALING_FREQUENCY"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'PRICING_FREQUENCY'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.PRICING_FREQUENCY
+                  ) AS "PRICING_FREQUENCY"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'VALUATION_TIME'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.VALUATION_TIME
+                  ) AS "VALUATION_TIME"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'FUND_DOMICILE'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.FUND_DOMICILE
+                  ) AS "FUND_DOMICILE"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'FUND_OBJECTIVE'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.FUND_OBJECTIVE
+                  ) AS "FUND_OBJECTIVE"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'BENEFICIAL_OWNER'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.BENEFICIAL_OWNER
+                  ) AS "BENEFICIAL_OWNER"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'ISSUING_GROUP'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.ISSUING_GROUP
+                  ) AS "ISSUING_GROUP"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'ISSUING_GROUP_ADDRESS'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.ISSUING_GROUP_ADDRESS
+                  ) AS "ISSUING_GROUP_ADDRESS"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'ISSUING_GROUP_POSTCODE'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.ISSUING_GROUP_POSTCODE
+                  ) AS "ISSUING_GROUP_POSTCODE"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'ISSUING_GROUP_PHONE_NUMBER'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.ISSUING_GROUP_PHONE_NUMBER
+                  ) AS "ISSUING_GROUP_PHONE_NUMBER"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'ISSUING_GROUP_WEBSITE'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.ISSUING_GROUP_WEBSITE
+                  ) AS "ISSUING_GROUP_WEBSITE"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'ISSUING_GROUP_LEI'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.ISSUING_GROUP_LEI
+                  ) AS "ISSUING_GROUP_LEI"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'GROUP_SUBTYPE'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.GROUP_SUBTYPE
+                  ) AS "GROUP_SUBTYPE"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'TRUSTEE'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.TRUSTEE
+                  ) AS "TRUSTEE"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'TRUSTEE_LEI'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.TRUSTEE_LEI
+                  ) AS "TRUSTEE_LEI"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'CUSTODIAN'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.CUSTODIAN
+                  ) AS "CUSTODIAN"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'CUSTODIAN_LEI'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.CUSTODIAN_LEI
+                  ) AS "CUSTODIAN_LEI"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'CUSTODIAN_DOMICILE'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.CUSTODIAN_DOMICILE
+                  ) AS "CUSTODIAN_DOMICILE"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'REGISTERED_HOLDER'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.REGISTERED_HOLDER
+                  ) AS "REGISTERED_HOLDER"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'REGISTERED_HOLDER_ADDRESS'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.REGISTERED_HOLDER_ADDRESS
+                  ) AS "REGISTERED_HOLDER_ADDRESS"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'ADMINISTRATOR'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.ADMINISTRATOR
+                  ) AS "ADMINISTRATOR"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'ADMINISTRATOR_LEI'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.ADMINISTRATOR_LEI
+                  ) AS "ADMINISTRATOR_LEI"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'ADMINISTRATOR_DOMICILE'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.ADMINISTRATOR_DOMICILE
+                  ) AS "ADMINISTRATOR_DOMICILE"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'AUDITOR'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.AUDITOR
+                  ) AS "AUDITOR"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'AUDITOR_LEI'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.AUDITOR_LEI
+                  ) AS "AUDITOR_LEI"
+        , COALESCE(MAX(CASE
+                       WHEN OL.ATTRIBUTE_NAME = 'AUDITOR_DOMICILE'
+                       THEN OL.ATTRIBUTE_VALUE END), FS.AUDITOR_DOMICILE
+                  ) AS "AUDITOR_DOMICILE"
+        , FS.LOAD_DATETIME
+FROM FUND_SAT FS
+LEFT JOIN OVR_RECORDS OL ON OL.H_KEY = FS.FUND_HKEY AND
+                            OL.ATTRIBUTE_NAME IN ('FUND_ID'
+	                                              , 'FUND_NAME'
+	                                              , 'FUND_NAME_SHORT'
+	                                              , 'FUND_ISSUE_GROUP_SHORT'
+	                                              , 'GROUP_SUBTYPE'
+	                                              , 'STATESTREET_ACCOUNT_ID'
+	                                              , 'FUND_TIN'
+	                                              , 'FUND_GIIN'
+	                                              , 'ACCOUNT_STRUCTURE'
+	                                              , 'MANAGER_STRUCTURE'
+	                                              , 'FUND_TYPE'
+	                                              , 'FUND_STRUCTURE'
+	                                              , 'DISTRIBUTION_TYPE'
+	                                              , 'CIS_TYPE'
+	                                              , 'REGULATORY_STATUS'
+	                                              , 'AUTHORISED_FUND_TYPE'
+	                                              , 'UCITS_VERSION'
+	                                              , 'PURCHASE_SETTLEMENT_DAYS'
+	                                              , 'REPURCHASE_SETTLEMENT_DAYS'
+	                                              , 'DEALING_FREQUENCY'
+	                                              , 'PRICING_FREQUENCY'
+	                                              , 'VALUATION_TIME'
+	                                              , 'FUND_DOMICILE'
+	                                              , 'FUND_OBJECTIVE'
+	                                              , 'BENEFICIAL_OWNER'
+	                                              , 'ISSUING_GROUP'
+	                                              , 'ISSUING_GROUP_ADDRESS'
+	                                              , 'ISSUING_GROUP_POSTCODE'
+	                                              , 'ISSUING_GROUP_PHONE_NUMBER'
+	                                              , 'ISSUING_GROUP_WEBSITE'
+	                                              , 'ISSUING_GROUP_LEI'
+	                                              , 'TRUSTEE'
+	                                              , 'TRUSTEE_LEI'
+	                                              , 'CUSTODIAN'
+	                                              , 'CUSTODIAN_LEI'
+	                                              , 'CUSTODIAN_DOMICILE'
+	                                              , 'REGISTERED_HOLDER'
+	                                              , 'REGISTERED_HOLDER_ADDRESS'
+	                                              , 'ADMINISTRATOR'
+	                                              , 'ADMINISTRATOR_LEI'
+	                                              , 'ADMINISTRATOR_DOMICILE'
+	                                              , 'AUDITOR'
+	                                              , 'AUDITOR_LEI'
+	                                              , 'AUDITOR_DOMICILE') AND
+                                                  OL.LOAD_DATETIME > FS.LOAD_DATETIME
+GROUP BY FUND_HKEY
+	     , FS.FUND_BKEY
+	     , FS.FUND_ID
+	     , FS.FUND_NAME
+	     , FS.FUND_NAME_SHORT
+	     , FS.FUND_ISSUE_GROUP_SHORT
+	     , FS.GROUP_SUBTYPE
+	     , FS.STATESTREET_ACCOUNT_ID
+	     , FS.FUND_TIN
+	     , FS.FUND_GIIN
+	     , FS.ACCOUNT_STRUCTURE
+	     , FS.MANAGER_STRUCTURE
+	     , FS.FUND_TYPE
+	     , FS.FUND_STRUCTURE
+	     , FS.DISTRIBUTION_TYPE
+	     , FS.CIS_TYPE
+	     , FS.REGULATORY_STATUS
+	     , FS.AUTHORISED_FUND_TYPE
+	     , FS.UCITS_VERSION
+	     , FS.PURCHASE_SETTLEMENT_DAYS
+	     , FS.REPURCHASE_SETTLEMENT_DAYS
+	     , FS.DEALING_FREQUENCY
+	     , FS.PRICING_FREQUENCY
+	     , FS.VALUATION_TIME
+	     , FS.FUND_DOMICILE
+	     , FS.FUND_OBJECTIVE
+	     , FS.BENEFICIAL_OWNER
+	     , FS.ISSUING_GROUP
+	     , FS.ISSUING_GROUP_ADDRESS
+	     , FS.ISSUING_GROUP_POSTCODE
+	     , FS.ISSUING_GROUP_PHONE_NUMBER
+	     , FS.ISSUING_GROUP_WEBSITE
+	     , FS.ISSUING_GROUP_LEI
+	     , FS.TRUSTEE
+	     , FS.TRUSTEE_LEI
+	     , FS.CUSTODIAN
+	     , FS.CUSTODIAN_LEI
+	     , FS.CUSTODIAN_DOMICILE
+	     , FS.REGISTERED_HOLDER
+	     , FS.REGISTERED_HOLDER_ADDRESS
+	     , FS.ADMINISTRATOR
+	     , FS.ADMINISTRATOR_LEI
+	     , FS.ADMINISTRATOR_DOMICILE
+	     , FS.AUDITOR
+	     , FS.AUDITOR_LEI
+	     , FS.AUDITOR_DOMICILE
+	     , FS.LOAD_DATETIME
+);
+);

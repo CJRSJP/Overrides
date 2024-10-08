@@ -1,0 +1,80 @@
+WITH OVR_RECORDS AS (
+    SELECT *
+    FROM (
+        SELECT OL.H_KEY,
+               OL.BUSINESS_DATE,
+               OL.ATTRIBUTE_NAME,
+               OL.ATTRIBUTE_VALUE,
+               OL.LOAD_DATETIME,
+               ROW_NUMBER() OVER (PARTITION BY OL.H_KEY, OL.BUSINESS_DATE, OL.ATTRIBUTE_NAME
+                                  ORDER BY OL.LOAD_DATETIME DESC) AS "DECLARED_RANK"
+        FROM IM_VAULT_DEV.REFERENCE.OVERRIDE_LOOKUP OL)
+    WHERE "DECLARED_RANK" = '1'
+)
+SELECT TOP 100
+        FUND_CLASS_HKEY,
+        FUND_CLASS_BKEY,
+        PERF_DATE,
+        MAX(CASE
+            WHEN OL.ATTRIBUTE_NAME = 'ABS_PERF_DAILY'
+            THEN COALESCE(OL.ATTRIBUTE_VALUE, FCSPS.ABS_PERF_DAILY)
+            ELSE FCSPS.ABS_PERF_DAILY END) AS "ABS_PERF_DAILY1",
+        MAX(CASE
+            WHEN OL.ATTRIBUTE_NAME = 'ABS_PERF_WEEKLY'
+            THEN COALESCE(OL.ATTRIBUTE_VALUE, FCSPS.ABS_PERF_WEEKLY)
+            ELSE FCSPS.ABS_PERF_WEEKLY END) AS "ABS_PERF_WEEKLY1",
+        MAX(CASE
+            WHEN OL.ATTRIBUTE_NAME = 'ABS_PERF_M1'
+            THEN COALESCE(OL.ATTRIBUTE_VALUE, FCSPS.ABS_PERF_M1)
+            ELSE FCSPS.ABS_PERF_M1 END) AS "ABS_PERF_M1",
+        MAX(CASE
+            WHEN OL.ATTRIBUTE_NAME = 'ABS_PERF_M3'
+            THEN COALESCE(OL.ATTRIBUTE_VALUE, FCSPS.ABS_PERF_M3)
+            ELSE FCSPS.ABS_PERF_M3 END) AS "ABS_PERF_M3",
+        MAX(CASE
+            WHEN OL.ATTRIBUTE_NAME = 'ABS_PERF_M6'
+            THEN COALESCE(OL.ATTRIBUTE_VALUE, FCSPS.ABS_PERF_M6)
+            ELSE FCSPS.ABS_PERF_M6 END) AS "ABS_PERF_M6",
+        MAX(CASE
+            WHEN OL.ATTRIBUTE_NAME = 'ABS_PERF_Y1'
+            THEN COALESCE(OL.ATTRIBUTE_VALUE, FCSPS.ABS_PERF_Y1)
+            ELSE FCSPS.ABS_PERF_Y1 END) AS "ABS_PERF_Y1",
+        MAX(CASE
+            WHEN OL.ATTRIBUTE_NAME = 'ABS_PERF_Y3'
+            THEN COALESCE(OL.ATTRIBUTE_VALUE, FCSPS.ABS_PERF_Y3)
+            ELSE FCSPS.ABS_PERF_Y3 END) AS "ABS_PERF_Y3",
+        MAX(CASE
+            WHEN OL.ATTRIBUTE_NAME = 'ABS_PERF_Y5'
+            THEN COALESCE(OL.ATTRIBUTE_VALUE, FCSPS.ABS_PERF_Y5)
+            ELSE FCSPS.ABS_PERF_Y5 END) AS "ABS_PERF_Y5",
+        MAX(CASE
+            WHEN OL.ATTRIBUTE_NAME = 'ABS_PERF_Y7'
+            THEN COALESCE(OL.ATTRIBUTE_VALUE, FCSPS.ABS_PERF_Y7)
+            ELSE FCSPS.ABS_PERF_Y7 END) AS "ABS_PERF_Y7",
+        MAX(CASE
+            WHEN OL.ATTRIBUTE_NAME = 'ABS_PERF_Y10'
+            THEN COALESCE(OL.ATTRIBUTE_VALUE, FCSPS.ABS_PERF_Y10)
+            ELSE FCSPS.ABS_PERF_Y10 END) AS "ABS_PERF_Y10",
+        MAX(CASE
+            WHEN OL.ATTRIBUTE_NAME = 'ABS_PERF_INCEPTION'
+            THEN COALESCE(OL.ATTRIBUTE_VALUE, FCSPS.ABS_PERF_INCEPTION)
+            ELSE FCSPS.ABS_PERF_INCEPTION END) AS "ABS_PERF_INCEPTION",
+        FCSPS.LOAD_DATETIME
+FROM IM_VAULT_DEV.BDV.FUND_CLASS_PERFORMANCE_SAT FCSPS
+LEFT JOIN OVR_RECORDS OL ON OL.H_KEY = FCSPS.FUND_CLASS_HKEY AND
+                            OL.BUSINESS_DATE = FCSPS.PERF_DATE AND
+                            OL.ATTRIBUTE_NAME IN ('ABS_PERF_DAILY',
+                                                  'ABS_PERF_WEEKLY',
+                                                  'ABS_PERF_M1',
+                                                  'ABS_PERF_M3',
+                                                  'ABS_PERF_M6',
+                                                  'ABS_PERF_Y1',
+                                                  'ABS_PERF_Y3',
+                                                  'ABS_PERF_Y5',
+                                                  'ABS_PERF_Y7',
+                                                  'ABS_PERF_Y10',
+                                                  'ABS_PERF_INCEPTION') AND
+                                                  OL.LOAD_DATETIME > FCSPS.LOAD_DATETIME
+WHERE FCSPS.FUND_CLASS_HKEY = '00B26A14246AF2997E897E6C56A03F7C' AND FCSPS.PERF_DATE = '2016-12-27'
+GROUP BY FUND_CLASS_HKEY, FUND_CLASS_BKEY, PERF_DATE, FCSPS.LOAD_DATETIME
+ORDER BY FUND_CLASS_HKEY;
